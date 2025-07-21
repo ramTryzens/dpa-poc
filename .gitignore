@@ -143,5 +143,5 @@ vite.config.ts.timestamp-*
 /node_modules/
 
 # React Router
-/.react-router/
+.react-router/
 /build/
