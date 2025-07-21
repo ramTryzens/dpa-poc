@@ -85,3 +85,22 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 ---
 
 Built with ❤️ using React Router.
+
+
+# SAP DPA POC API's
+
+1. Onboard Tenant
+  # Request
+    - PUT - {{adapterbaseurl}}/core/v1/tenants/{tenantId}
+
+  # Response
+    ```{
+      "tenantId": "12345",
+      "tenantUrl": "http://localhost:5173/core/v1/tenant/12345",
+      "createdAt": "2025-07-21T12:39:41.489Z",
+      "updatedAt": "2025-07-21T12:39:41.489Z"
+    }```
+
+2. Get Tenant
+  # Request
+    - GET - http://localhost:5173/core/v1/tenant/12345
