@@ -9,10 +9,10 @@ import type {
 } from "~/types/tenant";
 import { CONSTANTS } from "~/utils/constants";
 
-// Upserts Tenant
-export async function createTenant(
-  tenant: CreateTenantRequest
-): Promise<Tenant> {
+// Deletes Tenant
+export async function deleteTenant(
+  tenant: DeleteTenantRequest
+): Promise<boolean   | null> {
   if (!tenant.tenantId) throw new Error("Invalid Tenant ID");
   const now = new Date().toISOString();
   const tenantsPath = path.resolve(CONSTANTS.DATA_DIRECTORY);
@@ -31,29 +31,22 @@ export async function createTenant(
 
     const index = tenants.findIndex((t) => t.tenantId === tenant.tenantId);
 
-    if (index !== -1) {
-      tenants[index].updatedAt = now;
-      await fs.writeFile(tenantsPath, JSON.stringify(tenants, null, 2), "utf8");
-      return tenants[index];
+    if (index === -1) {
+      // Tenant NOT FOUND
+      return null;
     }
 
-    const tenantUrl = new URL(
-      process.env.adapterbaseurl ?? "http://localhost:5173"
-    );
-    tenantUrl.pathname = `core/v1/tenant/${tenant.tenantId}`;
-
-    const newTenant: Tenant = {
-      tenantId: tenant.tenantId,
-      tenantUrl: tenantUrl.toString(),
-      tenantSubdomain: tenant.tenantSubdomain,
-      tenantPlan: tenant.tenantPlan,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    tenants.push(newTenant);
-    await fs.writeFile(tenantsPath, JSON.stringify(tenants, null, 2), "utf8");
-    return newTenant;
+    if (tenant.isMarked === "true") {
+      tenants[index].markedForDeletion = true;
+      tenants[index].updatedAt = now;
+      await fs.writeFile(tenantsPath, JSON.stringify(tenants, null, 2), "utf8");
+      return true;
+    } else {
+      // const removedTenant = tenants[index];
+      tenants.splice(index, 1);
+      await fs.writeFile(tenantsPath, JSON.stringify(tenants, null, 2), "utf8");
+      return true;
+    }
   } catch (err) {
     console.error("Error upserting tenant:", err);
     throw err;
