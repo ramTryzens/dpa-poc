@@ -1,9 +1,8 @@
 import { validateJwt } from "~/utils/auth";
 import type { Route } from "./+types/test";
-import { createTenant } from "~/db/tenant/create";
-import type { GetTenant, OnboardTenantLoader } from "~/types/tenant";
+import type { GetTenant } from "~/types/tenant";
 import { findByTenantId } from "~/db/tenant/findByTenantId";
-import { useActionData, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { ErrorBoundary } from "~/components/Error";
 
 export async function loader(loader: Route.ClientLoaderArgs) {

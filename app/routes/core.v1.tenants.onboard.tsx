@@ -9,8 +9,7 @@ import type {
   OnboardTenantLoader,
   OnboardTenantRequestBody,
 } from "~/types/tenant";
-import { findByTenantId } from "~/db/tenant/findByTenantId";
-import { redirect, useActionData, useLoaderData } from "react-router";
+import { redirect } from "react-router";
 import { ErrorBoundary } from "~/components/Error";
 import { CONSTANTS } from "~/utils/constants";
 
