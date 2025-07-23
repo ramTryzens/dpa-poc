@@ -86,14 +86,29 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 
 Built with ❤️ using React Router.
 
-
 # SAP DPA POC API's
 
-1. Onboard Tenant
-  # Request
-    - PUT - {{adapterbaseurl}}/core/v1/tenants/{tenantId}
+1. Create Mock Auth Token
 
-  # Response
+# Request
+
+    - POST - {{adapterbaseurl}}/mock-token
+
+# Response
+
+    ```{
+    "mockToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtb2NrLWlzc3VlciIsInN1YiI6Im1vY2stc3ViamVjdCIsImF1ZCI6WyJtb2NrLWF1ZGllbmNlIl0sImV4cCI6MTc1MzI2OTM2NywiaWF0IjoxNzUzMTgyOTY3LCJqdGkiOiJtb2NrLWp3dC1pZC0xNzUzMTgyOTY3MDQ0IiwiY2xpZW50X2lkIjoibW9jay1jbGllbnQiLCJzY29wZSI6WyJ1YWEucmVzb3VyY2UiXSwicHNwX2NvZGUiOiJaTVNQIn0.XVqI_JO1pXwNPl4C-hNbC4dwhY39HMZFAlidXlSDcSk"
+    }```
+
+2. Onboard Tenant
+
+# Request
+
+    - PUT - {{adapterbaseurl}}/core/v1/tenants/{tenantId}
+    - Authorization - Bearer mockToken
+
+# Response
+
     ```{
       "tenantId": "12345",
       "tenantUrl": "http://localhost:5173/core/v1/tenant/12345",
@@ -101,6 +116,17 @@ Built with ❤️ using React Router.
       "updatedAt": "2025-07-21T12:39:41.489Z"
     }```
 
-2. Get Tenant
-  # Request
+3. Offboard Tenant
+
+# Request
+
+    - DELETE - {{adapterbaseurl}}/core/v1/tenants/{tenantId}
+    - Authorization - Bearer mockToken
+
+# Response - 204 No Content
+
+3. Get Tenant
+
+# Request
+
     - GET - http://localhost:5173/core/v1/tenant/12345
