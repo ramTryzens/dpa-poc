@@ -33,6 +33,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
         },
         status: { status: 400 },
       };
+      return { error }
     }
     requestBody = (await loader.request.json()) as OnboardTenantRequestBody;
     if (!requestBody?.tenantPlan || !requestBody?.tenantSubdomain)

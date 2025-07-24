@@ -35,6 +35,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
         },
         status: { status: 400 },
       };
+      return { error }
     }
     requestBody = (await loader?.request?.json()) as RequestRegistrationUrlBody;
     if (!requestBody?.DigitalPaymentTransaction?.DigitalPaymentTransaction)
@@ -97,28 +98,6 @@ export async function action(loader: Route.ClientLoaderArgs) {
       console.log("Request Registration URL successful with status 200");
       return response;
     }
-
-    // if (loader.request.method === "DELETE") {
-    //   const validateRequest = await validateOffboardTenantRequest(loader);
-    //   const validateParams = validateOffboardParams(loader);
-    //   if (validateParams?.error)
-    //     return Response.json(
-    //       validateParams?.error?.items,
-    //       validateParams?.error?.status
-    //     );
-
-    //   const tenant = await deleteTenant({
-    //     ...validateParams,
-    //     ...validateRequest?.requestBody,
-    //   });
-
-    //   if (!tenant)
-    //     return Response.json(
-    //       { message: "Unable to delete tenant" },
-    //       { status: 500 }
-    //     );
-    //   return new Response(null, { status: 204 });
-    // }
     return Response.json({ message: "Method Not Allowed" }, { status: 405 });
   } catch (error) {
     console.log("🚀 ~ action ~ error:", error);
