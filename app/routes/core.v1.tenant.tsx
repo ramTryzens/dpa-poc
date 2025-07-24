@@ -16,6 +16,12 @@ export async function loader(loader: Route.ClientLoaderArgs) {
   }
 }
 
+function splitCamelCaseToTitle(text: string): string {
+  return text
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // add space between camelCase
+    .replace(/^./, (str) => str.toUpperCase()); // capitalize first letter
+}
+
 
 export default function DefaultUI() {
   const data = useLoaderData();
@@ -24,24 +30,14 @@ export default function DefaultUI() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-200 text-center px-4">
       <h1 className="text-3xl font-bold text-red-600 mb-4">Tenant Details</h1>
       <div className="bg-white border border-gray-300 shadow-md rounded px-8 py-6 w-full max-w-md">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-700 mb-1">
-            Tenant ID
-          </h2>
-          <p className="text-gray-900">{data.tenant.tenantId}</p>
-        </div>
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-700 mb-1">
-            Created At
-          </h2>
-          <p className="text-gray-900">{data.tenant.createdAt}</p>
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-1">
-            Updated At
-          </h2>
-          <p className="text-gray-900">{data.tenant.updatedAt}</p>
-        </div>
+          {Object.keys(data.tenant).map((key, index) =>
+            <div className="mb-4" key={index}>
+              <h2 className="text-lg font-semibold text-gray-700 mb-1">
+                {splitCamelCaseToTitle(key)}
+              </h2>
+              <p className="text-gray-900">{data.tenant?.[key]}</p>
+            </div>
+          )}
       </div>
     </div>
   );
