@@ -1,17 +1,19 @@
-import { getMockPSPHeaders } from "~/psp/utils/GetMockPSPHeaders";
-import { getMockPSPUrl } from "~/psp/utils/GetMockPSPUrl";
+import { getMockPSPHeaders } from "~/psp/utils/getMockPSPHeaders";
+import { getMockPSPUrl } from "~/psp/utils/getMockPSPUrl";
 import type { InitializeMockPSPPayload } from "~/types/psp";
 import type { RequestRegistrationUrlBody } from "~/types/registration";
 
 export async function requestRegistrationUrl(data: RequestRegistrationUrlBody) {
   const mockPspUrl = await getMockPSPUrl();
   const headers = await getMockPSPHeaders();
+  const returnUrl = new URL(`${process.env.adapterbaseurl}/paymenmt`)
+  returnUrl.searchParams.append('DigitalPaymentTransaction', data.DigitalPaymentTransaction.DigitalPaymentTransaction)
   const body = {
     cartTotalAmount: 1000,
     currency: "USD",
     paymentAction: "auth_only",
-    returnUrl: "https://fb4cnp4q-5176.inc1.devtunnels.ms/test",
-    webhookUrl: "https://fb4cnp4q-5176.inc1.devtunnels.ms/test",
+    returnUrl: returnUrl?.toString(),
+    webhookUrl: `${process.env.adapterbaseurl}/payment`,
     // tokenize: true,
     showSavedCardOption: true,
   };
@@ -39,6 +41,8 @@ async function initializeMockPSP(payload: InitializeMockPSPPayload) {
     headers: options.headers,
     body: body as string,
   });
+  console.log('result.status')
+  console.log(result.status)
   const response = await result?.json();
   return response;
 }

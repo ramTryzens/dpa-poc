@@ -1,23 +1,18 @@
 import { validateJwt } from "~/utils/auth";
 import type { Route } from "./+types/test";
-import { createTenant } from "~/db/tenant/create";
-import { deleteTenant } from "~/db/tenant/delete";
-import type {
-  GetTenant,
-  OffboardTenantLoader,
-  OffboardTenantRequestParams,
-  OnboardTenantLoader,
-  OnboardTenantRequestBody,
-} from "~/types/tenant";
 import { redirect } from "react-router";
-import { ErrorBoundary } from "~/components/Error";
 import { CONSTANTS } from "~/utils/constants";
-import type { RequestRegistrationUrlBody, RequestRegistrationUrlResponse } from "~/types/registration";
-import { requestRegistrationUrl } from "~/db/registration/RequestRegistrationUrl";
+import type {
+  RequestRegistrationUrlBody,
+  RequestRegistrationUrlResponse,
+} from "~/types/registration";
+import { requestRegistrationUrl } from "~/psp/registration/RequestRegistrationUrl";
 
 export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Registration URL Request
-  async function validateRegistrationUrlRequest(loader: Route.ClientLoaderArgs) {
+  async function validateRegistrationUrlRequest(
+    loader: Route.ClientLoaderArgs
+  ) {
     let requestBody: RequestRegistrationUrlBody;
     let error;
     // Verify if json request, so that we can extract payload
@@ -35,7 +30,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
         },
         status: { status: 400 },
       };
-      return { error }
+      return { error };
     }
     requestBody = (await loader?.request?.json()) as RequestRegistrationUrlBody;
     if (!requestBody?.DigitalPaymentTransaction?.DigitalPaymentTransaction)
@@ -57,17 +52,6 @@ export async function action(loader: Route.ClientLoaderArgs) {
       requestBody,
     };
   }
-// const x = {
-//   DigitalPaymentTransaction: 'unique identifier', // Request
-// }
-// const y = {
-//   DigitalPaymentTransaction: 'unique identifier', // Response
-//   DigitalPaytTransResult: '[01 - Successful, 02 - Not successful],[for payment card registration also 03 – Pending, 04 – Timeout, 05 - Canceled]',
-//   DigitalPaytTransRsltDesc: 'description of the result of the transaction',
-//   AdapterToCoreException: 'object',
-//   RequestByPaytSrvcPrvdr: 'transactionIdFromPSP' // identifier that may be issued by the PSP to uniquely identify a request or a transaction
-// }
-  // Validate Offboard Request
 
   try {
     const authResponse = await validateJwt(loader);
@@ -91,9 +75,9 @@ export async function action(loader: Route.ClientLoaderArgs) {
 
       // If we get here, authorization was successful (authResponse is true)
       console.log("Authorization successful");
-      const registrationUrl = await requestRegistrationUrl({
+      const registrationUrl = (await requestRegistrationUrl({
         ...validateRequest?.requestBody,
-      }) as RequestRegistrationUrlResponse;
+      })) as RequestRegistrationUrlResponse;
       const response = Response.json(registrationUrl, { status: 200 });
       console.log("Request Registration URL successful with status 200");
       return response;
@@ -101,6 +85,17 @@ export async function action(loader: Route.ClientLoaderArgs) {
     return Response.json({ message: "Method Not Allowed" }, { status: 405 });
   } catch (error) {
     console.log("🚀 ~ action ~ error:", error);
+    const syntaxErrorMessage = error instanceof SyntaxError;
+    if (syntaxErrorMessage)
+      return Response.json(
+        {
+          status: "400",
+          message: "Request body is not a json",
+          identifier: "INVALID_ATTRIBUTE",
+          version: CONSTANTS.API_VERSION,
+        },
+        { status: 400 }
+      );
     return Response.json({ error }, { status: 500 });
   }
 }
