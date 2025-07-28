@@ -1,12 +1,12 @@
 import { getMockPSPHeaders } from "~/psp/utils/getMockPSPHeaders";
-import { getMockPSPUrl } from "~/psp/utils/getMockPSPUrl";
+import { getMockPSPDomain } from "~/psp/utils/getMockPSPUrl";
 import type { InitializeMockPSPPayload } from "~/types/psp";
 import type { RequestRegistrationUrlBody } from "~/types/registration";
 
 export async function requestRegistrationUrl(data: RequestRegistrationUrlBody) {
-  const mockPspUrl = await getMockPSPUrl();
+  const mockPspUrl = await getMockPSPDomain();
   const headers = await getMockPSPHeaders();
-  const returnUrl = new URL(`${process.env.adapterbaseurl}/paymenmt`)
+  const returnUrl = new URL(`${process.env.adapterbaseurl}/payment`)
   returnUrl.searchParams.append('DigitalPaymentTransaction', data.DigitalPaymentTransaction.DigitalPaymentTransaction)
   const body = {
     cartTotalAmount: 1000,
@@ -41,8 +41,6 @@ async function initializeMockPSP(payload: InitializeMockPSPPayload) {
     headers: options.headers,
     body: body as string,
   });
-  console.log('result.status')
-  console.log(result.status)
   const response = await result?.json();
   return response;
 }

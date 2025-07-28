@@ -1,9 +1,14 @@
 import { validateJwt } from "~/utils/auth";
 import type { Route } from "./+types/test";
 import { getQuery } from "~/utils/getQuery";
-import type { PSPPaymentResponseBody } from "~/types/psp";
+import type {
+  FetchTransactionDetailsResponse,
+  PSPPaymentResponseBody,
+} from "~/types/psp";
 import { CONSTANTS } from "~/utils/constants";
 import { fetchTransactionDetails } from "~/psp/fetchTransactionDetails";
+import { chargePayment } from "~/psp/charge/chargePayment";
+import { getPspPaymentSuccessStatus } from "~/psp/utils/getPspPaymentSuccessStatus";
 
 export async function loader(loader: Route.ClientLoaderArgs) {
   // Validate Registration URL Request
@@ -71,14 +76,69 @@ export async function loader(loader: Route.ClientLoaderArgs) {
     ...pspResponse?.requestBody,
   });
 
+  async function getChargePaymentPayload(
+    pspTransactionDetails: FetchTransactionDetailsResponse
+  ) {
+    const token = pspTransactionDetails?.token;
+    const cartTotalAmount = pspTransactionDetails?.cartTotalAmount;
+    const currency = "USD";
+    const paymentAction = "auth_only";
+    const returnUrl = pspTransactionDetails?.returnUrl;
+    return {
+      token,
+      cartTotalAmount,
+      currency,
+      paymentAction,
+      returnUrl,
+    };
+  }
+
+  const chargePaymentPayload = await getChargePaymentPayload(
+    pspTransactionDetails
+  );
+  const charge = await chargePayment(chargePaymentPayload);
+  const pspSuccessStatuses = getPspPaymentSuccessStatus();
+  const [expiryMonth = "", expiryYear = ""] =
+    charge?.cardDetails?.expiryDate?.split("/");
+  if (!pspSuccessStatuses.includes(charge?.action)) {
+    return Response.json({
+      DigitalPaymentTransaction: {
+        DigitalPaymentTransaction:
+          pspResponse?.requestBody?.DigitalPaymentTransaction,
+        DigitalPaytTransResult: "02",
+      },
+      PaymentCard: {
+        PaytCardByPaytServiceProvider: charge?.transactionId, //"384738665438646"
+        PaymentCardType: charge?.cardDetails?.cardType, //"DPVI"
+        PaymentCardExpirationMonth: expiryMonth, // "04"
+        PaymentCardExpirationYear: expiryYear,
+        PaymentCardMaskedNumber: charge?.cardDetails?.cardNumber,
+        PaymentCardHolderName: charge?.cardDetails?.cardName,
+      },
+    });
+  }
+
   return Response.json(
     {
-      method: loader?.request?.method,
-      pspTransactionId: pspResponse?.requestBody?.pspTransactionId,
-      DigitalPaymentTransaction:
-        pspResponse?.requestBody?.DigitalPaymentTransaction,
-      pspTransactionDetails
+      DigitalPaymentTransaction: {
+        DigitalPaymentTransaction:
+          pspResponse?.requestBody?.DigitalPaymentTransaction,
+        DigitalPaytTransResult: "01",
+      },
+      PaymentCard: {
+        PaytCardByPaytServiceProvider: charge?.transactionId, //"384738665438646"
+        PaymentCardType: charge?.cardDetails?.cardType, //"DPVI"
+        PaymentCardExpirationMonth: expiryMonth, // "04"
+        PaymentCardExpirationYear: expiryYear,
+        PaymentCardMaskedNumber: charge?.cardDetails?.cardNumber,
+        PaymentCardHolderName: charge?.cardDetails?.cardName,
+      },
     },
     { status: 200 }
   );
+}
+
+export async function action(data: Route.ClientActionArgs) {
+  const body = await data.request.json();
+  return Response.json({}, { status: 200 });
 }
