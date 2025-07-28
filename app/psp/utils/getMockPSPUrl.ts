@@ -1,4 +1,4 @@
-export async function getMockPSPUrl() {
+export async function getMockPSPDomain() {
   return (
     process?.env?.MOCK_PSP_URL ?? "https://dev-psp-mockapi.tryzens-ignite.com"
   );

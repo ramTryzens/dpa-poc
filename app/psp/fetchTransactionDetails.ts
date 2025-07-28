@@ -1,14 +1,15 @@
 import type {
   FetchTransactionDetailsPayload,
+  FetchTransactionDetailsResponse,
   PSPFetchTransactionDetailsPayload,
 } from "~/types/psp";
-import { getMockPSPUrl } from "./utils/getMockPSPUrl";
+import { getMockPSPDomain } from "./utils/getMockPSPUrl";
 import { getMockPSPHeaders } from "./utils/getMockPSPHeaders";
 
 export async function fetchTransactionDetails(
   payload: PSPFetchTransactionDetailsPayload
 ) {
-  const mockPspUrl = await getMockPSPUrl();
+  const mockPspUrl = await getMockPSPDomain();
   const headers = await getMockPSPHeaders();
   const options = {
     method: "GET",
@@ -35,6 +36,6 @@ async function transactionDetailsPSP(payload: FetchTransactionDetailsPayload) {
     method: options.method,
     headers: options.headers,
   });
-  const response = await result.json();
+  const response = await result.json() as FetchTransactionDetailsResponse;
   return response;
 }
