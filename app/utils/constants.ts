@@ -13,5 +13,6 @@ export const CONSTANTS = {
     "INTERNAL_ERROR",
     "TIMEOUT",
   ],
-  API_VERSION: 'V1'
+  API_VERSION: 'V1',
+  SHOULD_MARK_FOR_DELETE: 'true'
 };
