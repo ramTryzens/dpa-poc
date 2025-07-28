@@ -73,8 +73,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Offboard Request
   async function validateOffboardTenantRequest(loader: Route.ClientLoaderArgs) {
     let requestBody: OffboardTenantRequestParams;
-    const url = new URL(loader.request.url);
-    const isMarked = url.searchParams.get("isMarked") || undefined;
+    const isMarked = CONSTANTS.SHOULD_MARK_FOR_DELETE
     requestBody = { isMarked };
     return {
       requestBody,
