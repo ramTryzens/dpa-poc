@@ -8,8 +8,6 @@ import type {
 } from "~/types/registration";
 import { requestRegistrationUrl } from "~/psp/registration/RequestRegistrationUrl";
 import { getTenantIdFromHeader, validateTenantOnboarded } from "~/utils/tenant";
-import dotenv from "dotenv";
-dotenv.config();
 
 export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Registration URL Request

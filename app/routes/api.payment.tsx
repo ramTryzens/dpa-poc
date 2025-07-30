@@ -156,24 +156,6 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       'X-SAP-TenantId': pspResponse?.requestBody?.tenantId ?? 'N/A'
     } }
   );
-  // return Response.json(
-  //   {
-  //     DigitalPaymentTransaction: {
-  //       DigitalPaymentTransaction:
-  //         pspResponse?.requestBody?.DigitalPaymentTransaction,
-  //       DigitalPaytTransResult,
-  //     },
-  //     PaymentCard: {
-  //       PaytCardByPaytServiceProvider: charge?.transactionId, //"384738665438646"
-  //       PaymentCardType: charge?.cardDetails?.cardType, //"DPVI"
-  //       PaymentCardExpirationMonth: expiryMonth, // "04"
-  //       PaymentCardExpirationYear: expiryYear,
-  //       PaymentCardMaskedNumber: charge?.cardDetails?.cardNumber,
-  //       PaymentCardHolderName: charge?.cardDetails?.cardName,
-  //     },
-  //   },
-  //   { status: 200 }
-  // );
 }
 
 export async function action(data: Route.ClientActionArgs) {
