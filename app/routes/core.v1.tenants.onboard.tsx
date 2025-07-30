@@ -13,6 +13,7 @@ import { redirect } from "react-router";
 import { ErrorBoundary } from "~/components/Error";
 import { CONSTANTS } from "~/utils/constants";
 import { isTenantIdFormatValid } from "~/utils/validateTenant";
+import { OffboardTenant } from "./core.v1.tenants.offboard";
 
 export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Onboard Request
@@ -71,16 +72,6 @@ export async function action(loader: Route.ClientLoaderArgs) {
     };
   }
 
-  // Validate Offboard Request
-  async function validateOffboardTenantRequest(loader: Route.ClientLoaderArgs) {
-    let requestBody: OffboardTenantRequestParams;
-    const isMarked = process.env.SHOULD_MARK_FOR_DELETE;
-    requestBody = { isMarked };
-    return {
-      requestBody,
-    };
-  }
-
   // Validate Onboard Request Params
   async function validateOnboardParams(loader: Route.ClientLoaderArgs) {
     if (!loader?.params)
@@ -111,29 +102,12 @@ export async function action(loader: Route.ClientLoaderArgs) {
             status: { status: 400 },
           },
         };
-    } else
       return {
         ...(loader?.params as OnboardTenantLoader),
       };
-  }
-
-  // Validate Offboard Request Params
-  function validateOffboardParams(loader: Route.ClientLoaderArgs) {
-    if (!loader?.params)
+    } else
       return {
-        error: {
-          items: {
-            status: "400",
-            message: "Missing tenant id in path",
-            identifier: "MISSING_MANDATORY_ATTRIBUTE",
-            version: CONSTANTS.API_VERSION,
-          },
-          status: { status: 400 },
-        },
-      };
-    else
-      return {
-        ...(loader?.params as OffboardTenantLoader),
+        ...(loader?.params as OnboardTenantLoader),
       };
   }
 
@@ -175,25 +149,26 @@ export async function action(loader: Route.ClientLoaderArgs) {
     }
 
     if (loader.request.method === "DELETE") {
-      const validateRequest = await validateOffboardTenantRequest(loader);
-      const validateParams = validateOffboardParams(loader);
-      if (!validateParams || validateParams?.error)
-        return Response.json(
-          validateParams?.error?.items,
-          validateParams?.error?.status
-        );
+      return OffboardTenant(loader);
+      // const validateRequest = await validateOffboardTenantRequest(loader);
+      // const validateParams = validateOffboardParams(loader);
+      // if (!validateParams || validateParams?.error)
+      //   return Response.json(
+      //     validateParams?.error?.items,
+      //     validateParams?.error?.status
+      //   );
 
-      const tenant = await deleteTenant({
-        ...validateParams,
-        ...validateRequest?.requestBody,
-      });
+      // const tenant = await deleteTenant({
+      //   ...validateParams,
+      //   ...validateRequest?.requestBody,
+      // });
 
-      if (!tenant)
-        return Response.json(
-          { message: "Unable to delete tenant" },
-          { status: 500 }
-        );
-      return new Response(null, { status: 204 });
+      // if (!tenant)
+      //   return Response.json(
+      //     { message: "Unable to delete tenant" },
+      //     { status: 500 }
+      //   );
+      // return new Response(null, { status: 204 });
     }
     return Response.json({ message: "Method Not Allowed" }, { status: 405 });
   } catch (error) {

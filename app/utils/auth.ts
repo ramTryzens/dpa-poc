@@ -54,9 +54,8 @@ export async function validateJwt(loaderRequest: LoaderFunctionArgs): Promise<Re
   const authHeader = loaderRequest.request.headers.get("Authorization");
   console.log("🚀 ~ validateJwt ~ Checking Authorization:");
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.log('Authorization header missing or invalid', { 
-      ip: loaderRequest.request.url, 
-     
+    console.log('Authorization header missing or invalid', {
+      ip: loaderRequest.request.url,
     });
     return Response.json({
       status: '401',
@@ -73,18 +72,18 @@ export async function validateJwt(loaderRequest: LoaderFunctionArgs): Promise<Re
       console.log("Mock token detected in development environment, allowing access");
       decodedToken = verifyMockToken(token);
       return true;
-    }else {
+    } else {
       // Verify token with real JWT verification
         // For production or non-mock tokens, implement actual JWT validation here
     // This is where you would verify the token with your auth provider
     // For now, we'll just return true to allow the request to proceed
       console.log('Verifying JWT token with UAA');
       const verifyResult = await verifyToken(token);
-      
+
       // Check if the result is a JwtPayload
       if (typeof verifyResult !== 'string' && !(verifyResult instanceof Response)) {
         decodedToken = verifyResult;
-        console.log('JWT token verified successfully', { 
+        console.log('JWT token verified successfully', {
           subject: decodedToken.sub,
           issuer: decodedToken.iss
         });
@@ -95,9 +94,9 @@ export async function validateJwt(loaderRequest: LoaderFunctionArgs): Promise<Re
         console.log('JWT token verification returned a string result');
       }
     }
-    
-  
-    
+
+
+
   } catch(error) {
     console.log("🚀 ~ Error Validating JWT: " + error);
     return Response.json({
@@ -115,26 +114,27 @@ export async function validateJwt(loaderRequest: LoaderFunctionArgs): Promise<Re
  * @param {string} token - JWT token to check
  * @returns {boolean} True if token is a mock token
  */
-const isMockToken = (token: string) => {
+const isMockToken = (token: string): boolean => {
   try {
     //const mockToken = generateMockToken();
     console.log('Checking if token is a mock token');
-    
+
     // Try to decode the token without verification
     const decoded = jwt.decode(token, { complete: true }) as DecodedJwt | null;
-    
+
     // Check if the token has the mock issuer
     const isMock = decoded && decoded.payload && decoded.payload.iss === 'mock-issuer';
-    
+
     if (isMock) {
-      console.log('Token identified as mock token', { 
+      console.log('Token identified as mock token', {
         issuer: decoded.payload.iss,
         subject: decoded.payload.sub
       });
     } else {
       console.log('Token is not a mock token');
+      return false;
     }
-    
+
     return isMock;
   } catch (error) {
     // Type narrowing for the error object
@@ -149,17 +149,17 @@ const isMockToken = (token: string) => {
  * @param {string} token - JWT token to verify
  * @returns {Object} Decoded token payload
  */
-const verifyMockToken = (token: string) => {
+const verifyMockToken = (token: string): object => {
   try {
     console.log('Verifying mock JWT token');
     const MOCK_JWT_SECRET = process.env?.MOCK_JWT_SECRET;
-    
+
     if (!MOCK_JWT_SECRET) {
       throw new Error('MOCK_JWT_SECRET is not defined in environment variables');
     }
 
     const decoded = jwt.verify(token, MOCK_JWT_SECRET) as JwtPayload;
-    console.log('Mock JWT token verified successfully', { 
+    console.log('Mock JWT token verified successfully', {
       subject: decoded.sub,
       issuer: decoded.iss
     });
@@ -174,7 +174,7 @@ const verifyMockToken = (token: string) => {
 export async function generateMockToken(): Promise<string> {
   console.log('Generating mock JWT token');
   const MOCK_JWT_SECRET = process.env?.MOCK_JWT_SECRET;
-  
+
   if (!MOCK_JWT_SECRET) {
     throw new Error('MOCK_JWT_SECRET is not defined in environment variables');
   }
@@ -187,49 +187,45 @@ export async function generateMockToken(): Promise<string> {
     exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24), // 24 hours from now
     iat: Math.floor(Date.now() / 1000),
     jti: `mock-jwt-id-${Date.now()}`,
-    
+
     // Custom claims
     client_id: 'mock-client',
     scope: ['uaa.resource'],
-    
+
     // SAP specific claims
     psp_code: process.env.PSP_CODE,
-    
-    
   };
-  
-  console.log('Mock token payload prepared', { 
+
+  console.log('Mock token payload prepared', {
     issuer: defaultPayload.iss,
     subject: defaultPayload.sub,
     expiresIn: new Date(defaultPayload.exp * 1000).toISOString()
   });
-  
+
   const token = jwt.sign(defaultPayload, MOCK_JWT_SECRET, { algorithm: 'HS256' });
   console.log('Mock JWT token generated successfully');
-  
+
   return token;
 };
-
-
 
 /**
  * Fetch public key from UAA server
  * @param {string} kid - Key ID
  * @returns {Promise<string>} Public key
  */
-async function fetchPublicKey(kid: string) {
+async function fetchPublicKey(kid: string): Promise<string> {
   try {
     // Try Digital Payments UAA first
     const dpUaaUrl = config.jwt.digitalPaymentsUaaUrl;
     console.log(`Fetching public key from Digital Payments UAA`, { kid, uaaUrl: dpUaaUrl });
-    
+
     const dpResponse = await axios.get(`${dpUaaUrl}/token_keys`);
-    
+
     // Find key with matching kid
     const dpKey = dpResponse.data.keys.find((key: UaaKey) => key.kid === kid);
     console.log(`Found matching public key in Digital Payments UAA`, { kid });
     console.log(`Digital Payments UAA response: ${JSON.stringify(dpResponse.data)}`);
-    
+
     if (dpKey) {
       console.log(`Found matching public key in Digital Payments UAA`, { kid });
       console.log(`Digital Payments UAA response: ${JSON.stringify(dpResponse.data)}`);
@@ -237,11 +233,11 @@ async function fetchPublicKey(kid: string) {
       return dpKey.value;
     }
     throw new Error(`Public key with kid ${kid} not found`);
-    
+
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Failed to fetch public key', { 
-      kid, 
+    console.error('Failed to fetch public key', {
+      kid,
       error: errorMessage,
       });
     throw error;
@@ -258,11 +254,11 @@ export async function verifyToken  (token: string) : Promise<Response | string |
     // Decode token header to get key ID
     console.log('Verifying JWT token Token details', { token });
     const decoded = jwt.decode(token, { complete: true }) as DecodedJwt | null;
-    
+
     if (!decoded) {
       throw new Error('Failed to decode JWT token');
     }
-    
+
     const decodedHeader = decoded.header;
     const payload = decoded.payload;
     const signature = decoded.signature;
@@ -270,12 +266,12 @@ export async function verifyToken  (token: string) : Promise<Response | string |
     console.log('Decoded Payload', { payload });
     console.log('Decoded signature', { signature });
     const kid = decodedHeader.kid;
-    
+
     console.log('Verifying JWT token', { kid });
-    
+
     // Check if public key is in cache
     let publicKey: string | undefined = publicKeyCache.get(kid);
-    
+
     // If not in cache, fetch from UAA
     if (!publicKey) {
       console.log('Public key not found in cache, fetching from UAA', { kid });
@@ -286,17 +282,17 @@ export async function verifyToken  (token: string) : Promise<Response | string |
     } else {
       console.log('Using cached public key', { kid });
     }
-    
+
     // Verify token with public key
     if (!publicKey) {
       throw new Error('Public key is undefined');
     }
-    
+
     const decodedToken = jwt.verify(token, publicKey, {
       algorithms: ['RS256']
     }) as JwtPayload;
-    
-    console.log('Token verified successfully', { 
+
+    console.log('Token verified successfully', {
       subject: decodedToken.sub,
       issuer: decodedToken.iss,
       expiresIn: decodedToken.exp ? new Date(decodedToken.exp * 1000).toISOString() : 'undefined'
@@ -305,8 +301,8 @@ export async function verifyToken  (token: string) : Promise<Response | string |
     return decodedToken;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Token verification failed', { 
-      error: errorMessage      
+    console.error('Token verification failed', {
+      error: errorMessage
     });
     throw error;
   }
@@ -317,8 +313,8 @@ export function extractTenantId(decodedToken: JwtPayload): string | null {
   let extractedTenantId = null;
   console.log('Extracting az_attr from token', { az_attr: decodedToken.az_attr });
   console.log('Extracting tenant ID from token', { tenantId: decodedToken.az_attr?.tenantId });
-  if (decodedToken && 
-      decodedToken.az_attr && 
+  if (decodedToken &&
+      decodedToken.az_attr &&
       decodedToken.az_attr.tenantId) {
     // Convert any potential undefined to null to match the return type
     return decodedToken.az_attr.tenantId || null;
@@ -332,75 +328,76 @@ export function extractTenantId(decodedToken: JwtPayload): string | null {
  */
 async function getSamlTokenUrl(): Promise<string> {
   const cacheKey = 'saml_metadata_token_url';
-  
+
   // Check if we have the token URL in cache
   const cachedTokenUrl = samlMetadataCache.get<string>(cacheKey);
   if (cachedTokenUrl) {
     console.log('Using cached SAML token URL');
     return cachedTokenUrl;
   }
-  
+
   // No token URL in cache, fetch and parse SAML metadata
   try {
     const uaaUrl = process.env.EXTERNAL_ADAPTER_UAA_URL;
     if (!uaaUrl) {
       throw new Error('EXTERNAL_ADAPTER_UAA_URL environment variable is not defined');
     }
-    
+
     const samlMetadataUrl = `${uaaUrl}/saml/metadata`;
     console.log('Fetching SAML metadata from', { samlMetadataUrl });
-    
+
     const response = await axios.get(samlMetadataUrl, {
       headers: {
         'Accept': 'application/xml, text/xml'
       },
       timeout: 10000 // 10 second timeout for the request
     });
-    
+
     if (response.status !== 200) {
       throw new Error(`Failed to get SAML metadata: ${response.status}`);
     }
-    
+
     const xmlData = response.data;
     console.log('SAML metadata fetched successfully');
-    
+
     // Parse XML and extract token URL
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
-    
+
     // Use XPath to find the AssertionConsumerService with the specified binding
     const nodes = select(
-      "//md:AssertionConsumerService[@Binding='urn:oasis:names:tc:SAML:2.0:bindings:URI']", 
+      "//md:AssertionConsumerService[@Binding='urn:oasis:names:tc:SAML:2.0:bindings:URI']",
       xmlDoc
     ) as Node[];
-    
+
+    console.log("🚀 ~ getSamlTokenUrl ~ nodes:", nodes)
     if (!nodes || nodes.length === 0) {
       throw new Error('No AssertionConsumerService with URI binding found in SAML metadata');
     }
-    
+
     // Get the Location attribute
     const locationAttr = (nodes[0] as Element).getAttribute('Location');
     if (!locationAttr) {
       throw new Error('Location attribute not found in AssertionConsumerService');
     }
-    
+
     console.log('Token URL extracted from SAML metadata', { tokenUrl: locationAttr });
-    
+
     // Cache the token URL for 24 hours
     samlMetadataCache.set(cacheKey, locationAttr, 24 * 60 * 60);
-    
+
     return locationAttr;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Failed to get token URL from SAML metadata', { error: errorMessage });
-    
+
     // Fall back to environment variable if SAML metadata fetch fails
     const fallbackUrl = process.env.DIGITAL_PAYMENTS_ADAPTER_TO_CORE_TOKEN_URL;
     if (fallbackUrl) {
       console.log('Falling back to environment variable for token URL', { fallbackUrl });
       return fallbackUrl;
     }
-    
+
     throw new Error(`Failed to get token URL from SAML metadata: ${errorMessage}`);
   }
 }
@@ -411,31 +408,31 @@ async function getSamlTokenUrl(): Promise<string> {
  * Implements caching for performance optimization
  * @returns {Promise<string>} Access token for adapter to core communication
  */
-export async function getTokenforAdptrToCoreComm(): Promise<string> {
+export async function getTokenforAdptrToCoreComm(dataToBePassedInJwt?: { [key: string]: unknown }): Promise<string> {
   const cacheKey = 'adapter_to_core_token';
-  
+
   // Check if we have a valid token in cache
   const cachedToken = adapterToCoreTokenCache.get<string>(cacheKey);
   if (cachedToken) {
     console.log('Using cached adapter to core token');
     return cachedToken;
   }
-  
+
   // No valid token in cache, fetch a new one
   try {
     // Get token URL from SAML metadata
     const tokenUrl = await getSamlTokenUrl();
-    
+
     const clientId = process.env.ADAPTER_TO_CORE_CLIENT_ID;
     const clientPassword = process.env.ADAPTER_TO_CORE_CLIENT_PASSWORD;
-    
+
     if (!clientId || !clientPassword) {
       throw new Error('ADAPTER_TO_CORE_CLIENT_ID or ADAPTER_TO_CORE_CLIENT_PASSWORD environment variable is not defined');
     }
-    
+
     // Create Basic Auth credentials
     const credentials = Buffer.from(`${clientId}:${clientPassword}`).toString('base64');
-    
+
     console.log('Fetching new adapter to core token');
     const response = await axios.get(tokenUrl, {
       headers: {
@@ -444,23 +441,23 @@ export async function getTokenforAdptrToCoreComm(): Promise<string> {
       },
       timeout: 5000 // 5 second timeout for the request
     });
-    
+
     if (response.status !== 200 || !response.data.access_token) {
       throw new Error(`Failed to get token: ${response.status} ${JSON.stringify(response.data)}`);
     }
-    
+
     const accessToken = response.data.access_token;
-    
+
     // Calculate TTL based on expires_in if available, otherwise use default
     let tokenTtl = 3500; // Default to slightly less than 1 hour
     if (response.data.expires_in && typeof response.data.expires_in === 'number') {
       // Set cache TTL to 90% of the actual token expiration time to ensure we refresh before expiry
       tokenTtl = Math.floor(response.data.expires_in * 0.9);
     }
-    
+
     // Cache the token
     adapterToCoreTokenCache.set(cacheKey, accessToken, tokenTtl);
-    
+
     console.log('Successfully obtained and cached new adapter to core token');
     return accessToken;
   } catch (error) {
