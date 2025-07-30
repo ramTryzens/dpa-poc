@@ -30,6 +30,10 @@ export const openApiSpec = {
       description: "Payment card related endpoints"
     },
     {
+      name: "Capabilities",
+      description: "PSP capabilities endpoints"
+    },
+    {
       name: "Test",
       description: "Test endpoints"
     }
@@ -585,6 +589,105 @@ export const openApiSpec = {
                     message: {
                       type: "string",
                       example: "Method Not Allowed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            description: "Internal server error",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: {
+                      type: "object",
+                      description: "Error details"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/core/v1/capabilities": {
+      get: {
+        tags: ["Capabilities"],
+        summary: "Get PSP capabilities",
+        description: "Retrieves the capabilities supported by the payment service provider for the authenticated tenant",
+        operationId: "getCapabilities",
+        security: [
+          {
+            bearerAuth: []
+          }
+        ],
+        responses: {
+          "200": {
+            description: "Capabilities successfully retrieved",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    capabilities: {
+                      type: "array",
+                      description: "List of supported capabilities",
+                      items: {
+                        type: "string"
+                      },
+                      example: ["PAYMENT_CARD_REGISTRATION", "EXTERNAL_PAYMENT"]
+                    },
+                    supportedPaymentTypeProperties: {
+                      type: "object",
+                      description: "Properties for each supported payment type",
+                      additionalProperties: {
+                        type: "object"
+                      }
+                    },
+                    paymentPagePath: {
+                      type: "string",
+                      description: "Path to the payment page for the PSP",
+                      example: "/payment-page/DPXX"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            description: "Unauthorized - Invalid or missing authentication token",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    status: {
+                      type: "string",
+                      example: "401"
+                    },
+                    message: {
+                      type: "string",
+                      example: "Authorization header missing or invalid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            description: "Tenant not found or not onboarded",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    error: {
+                      type: "string",
+                      example: "Tenant not onboarded"
                     }
                   }
                 }

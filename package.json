@@ -21,7 +21,9 @@
     "react-dom": "^18.3.1",
     "react-router": "^7.7.0",
     "swagger-ui-dist": "^5.27.0",
-    "swagger-ui-react": "^5.27.0"
+    "swagger-ui-react": "^5.27.0",
+    "xmldom": "^0.6.0",
+    "xpath": "^0.0.34"
   },
   "devDependencies": {
     "@react-router/dev": "^7.7.0",

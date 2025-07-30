@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 import NodeCache from "node-cache";
 import axios from "axios";
+import { DOMParser } from "xmldom";
+import { select } from "xpath";
 
 
 // Define interface for decoded JWT with complete option
@@ -39,6 +41,12 @@ const publicKeyCache = new NodeCache({
 const adapterToCoreTokenCache = new NodeCache({
   stdTTL: 3500, // Cache tokens for slightly less than the typical 1-hour expiration (3600 seconds)
   checkperiod: 60 // Check for expired tokens every minute
+});
+
+// Cache for storing SAML metadata
+const samlMetadataCache = new NodeCache({
+  stdTTL: 24 * 60 * 60, // Cache SAML metadata for 24 hours
+  checkperiod: 60 * 60 // Check for expired metadata every hour
 });
 
 export async function validateJwt(loaderRequest: LoaderFunctionArgs): Promise<Response | boolean> {
@@ -319,6 +327,85 @@ export function extractTenantId(decodedToken: JwtPayload): string | null {
 };
 
 /**
+ * Fetch and parse SAML metadata to extract token URL
+ * @returns {Promise<string>} Token URL extracted from SAML metadata
+ */
+async function getSamlTokenUrl(): Promise<string> {
+  const cacheKey = 'saml_metadata_token_url';
+  
+  // Check if we have the token URL in cache
+  const cachedTokenUrl = samlMetadataCache.get<string>(cacheKey);
+  if (cachedTokenUrl) {
+    console.log('Using cached SAML token URL');
+    return cachedTokenUrl;
+  }
+  
+  // No token URL in cache, fetch and parse SAML metadata
+  try {
+    const uaaUrl = process.env.EXTERNAL_ADAPTER_UAA_URL;
+    if (!uaaUrl) {
+      throw new Error('EXTERNAL_ADAPTER_UAA_URL environment variable is not defined');
+    }
+    
+    const samlMetadataUrl = `${uaaUrl}/saml/metadata`;
+    console.log('Fetching SAML metadata from', { samlMetadataUrl });
+    
+    const response = await axios.get(samlMetadataUrl, {
+      headers: {
+        'Accept': 'application/xml, text/xml'
+      },
+      timeout: 10000 // 10 second timeout for the request
+    });
+    
+    if (response.status !== 200) {
+      throw new Error(`Failed to get SAML metadata: ${response.status}`);
+    }
+    
+    const xmlData = response.data;
+    console.log('SAML metadata fetched successfully');
+    
+    // Parse XML and extract token URL
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
+    
+    // Use XPath to find the AssertionConsumerService with the specified binding
+    const nodes = select(
+      "//md:AssertionConsumerService[@Binding='urn:oasis:names:tc:SAML:2.0:bindings:URI']", 
+      xmlDoc
+    ) as Node[];
+    
+    if (!nodes || nodes.length === 0) {
+      throw new Error('No AssertionConsumerService with URI binding found in SAML metadata');
+    }
+    
+    // Get the Location attribute
+    const locationAttr = (nodes[0] as Element).getAttribute('Location');
+    if (!locationAttr) {
+      throw new Error('Location attribute not found in AssertionConsumerService');
+    }
+    
+    console.log('Token URL extracted from SAML metadata', { tokenUrl: locationAttr });
+    
+    // Cache the token URL for 24 hours
+    samlMetadataCache.set(cacheKey, locationAttr, 24 * 60 * 60);
+    
+    return locationAttr;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Failed to get token URL from SAML metadata', { error: errorMessage });
+    
+    // Fall back to environment variable if SAML metadata fetch fails
+    const fallbackUrl = process.env.DIGITAL_PAYMENTS_ADAPTER_TO_CORE_TOKEN_URL;
+    if (fallbackUrl) {
+      console.log('Falling back to environment variable for token URL', { fallbackUrl });
+      return fallbackUrl;
+    }
+    
+    throw new Error(`Failed to get token URL from SAML metadata: ${errorMessage}`);
+  }
+}
+
+/**
  * Get authentication token for adapter to core communication
  * Uses basic authentication with client ID and password to obtain an OAuth token
  * Implements caching for performance optimization
@@ -336,10 +423,8 @@ export async function getTokenforAdptrToCoreComm(): Promise<string> {
   
   // No valid token in cache, fetch a new one
   try {
-    const tokenUrl = process.env.DIGITAL_PAYMENTS_ADAPTER_TO_CORE_TOKEN_URL;
-    if (!tokenUrl) {
-      throw new Error('DIGITAL_PAYMENTS_ADAPTER_TO_CORE_TOKEN_URL environment variable is not defined');
-    }
+    // Get token URL from SAML metadata
+    const tokenUrl = await getSamlTokenUrl();
     
     const clientId = process.env.ADAPTER_TO_CORE_CLIENT_ID;
     const clientPassword = process.env.ADAPTER_TO_CORE_CLIENT_PASSWORD;
