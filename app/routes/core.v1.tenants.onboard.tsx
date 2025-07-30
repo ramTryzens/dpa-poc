@@ -12,6 +12,7 @@ import type {
 import { redirect } from "react-router";
 import { ErrorBoundary } from "~/components/Error";
 import { CONSTANTS } from "~/utils/constants";
+import { isTenantIdFormatValid } from "~/utils/validateTenant";
 
 export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Onboard Request
@@ -33,7 +34,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
         },
         status: { status: 400 },
       };
-      return { error }
+      return { error };
     }
     requestBody = (await loader.request.json()) as OnboardTenantRequestBody;
     if (!requestBody?.tenantPlan || !requestBody?.tenantSubdomain)
@@ -73,7 +74,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Offboard Request
   async function validateOffboardTenantRequest(loader: Route.ClientLoaderArgs) {
     let requestBody: OffboardTenantRequestParams;
-    const isMarked = CONSTANTS.SHOULD_MARK_FOR_DELETE
+    const isMarked = process.env.SHOULD_MARK_FOR_DELETE;
     requestBody = { isMarked };
     return {
       requestBody,
@@ -81,7 +82,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
   }
 
   // Validate Onboard Request Params
-  function validateOnboardParams(loader: Route.ClientLoaderArgs) {
+  async function validateOnboardParams(loader: Route.ClientLoaderArgs) {
     if (!loader?.params)
       return {
         error: {
@@ -94,7 +95,23 @@ export async function action(loader: Route.ClientLoaderArgs) {
           status: { status: 400 },
         },
       };
-    else
+    else if (loader.params) {
+      const isValid = await isTenantIdFormatValid(
+        (loader?.params as OnboardTenantLoader).tenantId
+      );
+      if (!isValid)
+        return {
+          error: {
+            items: {
+              status: "400",
+              message: "Missing tenant id in path",
+              identifier: "MISSING_MANDATORY_ATTRIBUTE",
+              version: CONSTANTS.API_VERSION,
+            },
+            status: { status: 400 },
+          },
+        };
+    } else
       return {
         ...(loader?.params as OnboardTenantLoader),
       };
@@ -142,8 +159,8 @@ export async function action(loader: Route.ClientLoaderArgs) {
 
       // If we get here, authorization was successful (authResponse is true)
       console.log("Authorization successful");
-      const validateParams = validateOnboardParams(loader);
-      if (validateParams?.error)
+      const validateParams = await validateOnboardParams(loader);
+      if (!validateParams || validateParams?.error)
         return Response.json(
           validateParams?.error?.items,
           validateParams?.error?.status
@@ -160,7 +177,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
     if (loader.request.method === "DELETE") {
       const validateRequest = await validateOffboardTenantRequest(loader);
       const validateParams = validateOffboardParams(loader);
-      if (validateParams?.error)
+      if (!validateParams || validateParams?.error)
         return Response.json(
           validateParams?.error?.items,
           validateParams?.error?.status

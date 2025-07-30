@@ -8,6 +8,7 @@ export async function requestRegistrationUrl(data: RequestRegistrationUrlBody) {
   const headers = await getMockPSPHeaders();
   const returnUrl = new URL(`${process.env.adapterbaseurl}/payment`)
   returnUrl.searchParams.append('DigitalPaymentTransaction', data.DigitalPaymentTransaction.DigitalPaymentTransaction)
+  returnUrl.searchParams.append('tenantId', data.tenantId)
   const body = {
     cartTotalAmount: 1000,
     currency: "USD",

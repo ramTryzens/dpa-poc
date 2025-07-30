@@ -22,6 +22,7 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       transactionId = undefined,
       status = undefined,
       DigitalPaymentTransaction = undefined,
+      tenantId = undefined,
     } = queryParams as PSPPaymentResponseBody;
     if (!transactionId)
       error = {
@@ -53,6 +54,16 @@ export async function loader(loader: Route.ClientLoaderArgs) {
         },
         status: { status: 400 },
       };
+    if (!tenantId)
+      error = {
+        items: {
+          status: "400",
+          message: "Missing DigitalPaymentTransaction in request body",
+          identifier: "MISSING_MANDATORY_ATTRIBUTE",
+          version: CONSTANTS.API_VERSION,
+        },
+        status: { status: 400 },
+      };
     if (error?.items)
       return {
         error,
@@ -61,6 +72,7 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       pspTransactionId: transactionId as string,
       status,
       DigitalPaymentTransaction,
+      tenantId,
     };
 
     return {
@@ -98,6 +110,12 @@ export async function loader(loader: Route.ClientLoaderArgs) {
   );
   const charge = await chargePayment(chargePaymentPayload);
   const pspSuccessStatuses = getPspPaymentSuccessStatus();
+  const DigitalPaytTransResult =
+    pspResponse?.requestBody?.status === "success"
+      ? "01"
+      : pspResponse?.requestBody?.status === "cancel"
+      ? "05"
+      : "02";
   const [expiryMonth = "", expiryYear = ""] =
     charge?.cardDetails?.expiryDate?.split("/");
   if (!pspSuccessStatuses.includes(charge?.action)) {
@@ -105,7 +123,7 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       DigitalPaymentTransaction: {
         DigitalPaymentTransaction:
           pspResponse?.requestBody?.DigitalPaymentTransaction,
-        DigitalPaytTransResult: "02",
+        DigitalPaytTransResult,
       },
       PaymentCard: {
         PaytCardByPaytServiceProvider: charge?.transactionId, //"384738665438646"
@@ -123,7 +141,7 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       DigitalPaymentTransaction: {
         DigitalPaymentTransaction:
           pspResponse?.requestBody?.DigitalPaymentTransaction,
-        DigitalPaytTransResult: "01",
+        DigitalPaytTransResult,
       },
       PaymentCard: {
         PaytCardByPaytServiceProvider: charge?.transactionId, //"384738665438646"
@@ -134,7 +152,9 @@ export async function loader(loader: Route.ClientLoaderArgs) {
         PaymentCardHolderName: charge?.cardDetails?.cardName,
       },
     },
-    { status: 200 }
+    { status: 200, headers: {
+      'X-SAP-TenantId': pspResponse?.requestBody?.tenantId ?? 'N/A'
+    } }
   );
 }
 

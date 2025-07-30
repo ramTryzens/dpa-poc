@@ -1,4 +1,5 @@
 export interface RequestRegistrationUrlBody {
+  tenantId: string;
   tenantSubdomain: string;
   tenantPlan: string;
   DigitalPaymentCommerceType: string; // Eg: "ECOMMERCE"
