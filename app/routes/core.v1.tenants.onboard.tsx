@@ -148,27 +148,9 @@ export async function action(loader: Route.ClientLoaderArgs) {
       return response;
     }
 
+    // DELETE Tenant
     if (loader.request.method === "DELETE") {
       return OffboardTenant(loader);
-      // const validateRequest = await validateOffboardTenantRequest(loader);
-      // const validateParams = validateOffboardParams(loader);
-      // if (!validateParams || validateParams?.error)
-      //   return Response.json(
-      //     validateParams?.error?.items,
-      //     validateParams?.error?.status
-      //   );
-
-      // const tenant = await deleteTenant({
-      //   ...validateParams,
-      //   ...validateRequest?.requestBody,
-      // });
-
-      // if (!tenant)
-      //   return Response.json(
-      //     { message: "Unable to delete tenant" },
-      //     { status: 500 }
-      //   );
-      // return new Response(null, { status: 204 });
     }
     return Response.json({ message: "Method Not Allowed" }, { status: 405 });
   } catch (error) {
