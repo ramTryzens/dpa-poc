@@ -1,4 +1,6 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
+// import dotenv from "dotenv";
+// dotenv.config();
 
 export default [
   index("routes/home.tsx"),

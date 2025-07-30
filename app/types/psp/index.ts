@@ -11,6 +11,7 @@ export interface PSPPaymentResponseBody {
   transactionId: string;
   status: string;
   DigitalPaymentTransaction: string;
+  tenantId: string;
 }
 
 export interface PSPFetchTransactionDetailsPayload {

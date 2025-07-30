@@ -7,6 +7,9 @@ import type {
   RequestRegistrationUrlResponse,
 } from "~/types/registration";
 import { requestRegistrationUrl } from "~/psp/registration/RequestRegistrationUrl";
+import { getTenantIdFromHeader, validateTenantOnboarded } from "~/utils/tenant";
+import dotenv from "dotenv";
+dotenv.config();
 
 export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Registration URL Request
@@ -32,6 +35,10 @@ export async function action(loader: Route.ClientLoaderArgs) {
       };
       return { error };
     }
+    const validTenantInHeader = await validateTenantOnboarded(loader);
+    if (validTenantInHeader instanceof Response) return validTenantInHeader;
+    const tenantId = await getTenantIdFromHeader(loader);
+    if (tenantId instanceof Response) return tenantId;
     requestBody = (await loader?.request?.json()) as RequestRegistrationUrlBody;
     if (!requestBody?.DigitalPaymentTransaction?.DigitalPaymentTransaction)
       error = {
@@ -50,6 +57,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
       };
     return {
       requestBody,
+      tenantId
     };
   }
 
@@ -66,6 +74,10 @@ export async function action(loader: Route.ClientLoaderArgs) {
     if (loader.request.method === "POST") {
       // All validations on request and request body
       const validateRequest = await validateRegistrationUrlRequest(loader);
+      if (validateRequest instanceof Response) {
+        return validateRequest;
+      }
+
       if (validateRequest?.error) {
         return Response.json(
           validateRequest?.error?.items,
@@ -77,6 +89,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
       console.log("Authorization successful");
       const registrationUrl = (await requestRegistrationUrl({
         ...validateRequest?.requestBody,
+        tenantId: validateRequest?.tenantId,
       })) as RequestRegistrationUrlResponse;
       const response = Response.json(registrationUrl, { status: 200 });
       console.log("Request Registration URL successful with status 200");
