@@ -74,7 +74,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
   // Validate Offboard Request
   async function validateOffboardTenantRequest(loader: Route.ClientLoaderArgs) {
     let requestBody: OffboardTenantRequestParams;
-    const isMarked = CONSTANTS.SHOULD_MARK_FOR_DELETE;
+    const isMarked = process.env.SHOULD_MARK_FOR_DELETE;
     requestBody = { isMarked };
     return {
       requestBody,
