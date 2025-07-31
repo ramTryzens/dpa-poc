@@ -55,7 +55,7 @@ export async function action(loader: Route.ClientLoaderArgs) {
       };
     return {
       requestBody,
-      tenantId
+      tenantId,
     };
   }
 
@@ -89,7 +89,12 @@ export async function action(loader: Route.ClientLoaderArgs) {
         ...validateRequest?.requestBody,
         tenantId: validateRequest?.tenantId,
       })) as RequestRegistrationUrlResponse;
-      const response = Response.json(registrationUrl, { status: 200 });
+      const response = Response.json(registrationUrl, {
+        status: 200,
+        headers: {
+          "X-SAP-TenantId": validateRequest?.tenantId ?? "N/A",
+        },
+      });
       console.log("Request Registration URL successful with status 200");
       return response;
     }
