@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { verifyToken, extractTenantId } from "./auth";
 import { findByTenantId } from "~/db/tenant/findByTenantId";
 import type { GetTenant } from "~/types/tenant";
+import { buildErrorResponse } from "./buildErrorResponse";
 /**
  * Check if a tenant is already onboarded in the system
  * @param tenantId - The ID of the tenant to check
@@ -19,41 +20,39 @@ export async function isTenantOnboarded(tenantId: string): Promise<boolean> {
   }
 }
 
-export async function validateTenantOnboarded(loaderRequest: LoaderFunctionArgs): Promise<Response | boolean> {
+export async function validateTenantOnboarded(loaderRequest: LoaderFunctionArgs): Promise<Response | true> {
     const headerTenantId = loaderRequest.request.headers.get("X-SAP-TenantId");
-    if (!headerTenantId) {
-        console.log('Tenant ID not present in ', {
-          url: loaderRequest.request.url,
-        });
-        console.log('Fetching tenant from JWT token');
-        let tenantId = await fetchTenantDetailsFromJWT(loaderRequest);
-        if(process.env.NODE_ENV === 'development'
-             && !tenantId) {
-            tenantId = process.env.TENANT_ID || null;
-        }
-        if(!tenantId) {
-            // Otherwise return an error response
-            return Response.json({
-              status: '401',
-              message: 'Tenant ID header missing or invalid'
-            }, { status: 401 });
-        }
+    if (headerTenantId) return true
+    console.log('Tenant ID not present in ', {
+      url: loaderRequest.request.url,
+    });
+    console.log('Fetching tenant from JWT token');
+    let tenantId = await fetchTenantDetailsFromJWT(loaderRequest);
+    if(process.env.NODE_ENV === 'development'
+          && !tenantId) {
+        tenantId = process.env.TENANT_ID || null;
+    }
+    if(!tenantId) {
+      // Otherwise return an error response
+      return buildErrorResponse({
+        message: 'Tenant ID header missing or invalid',
+        status: 401,
+        identifier: 'MISSING_MANDATORY_ATTRIBUTE',
+      })
+    }
 
-        // Check if the tenant is already onboarded
-        const isOnboarded = await isTenantOnboarded(tenantId);
-        if (!isOnboarded) {
-            console.log('Tenant not onboarded', { tenantId });
-            return Response.json({
-              status: '404',
-              message: 'Tenant not onboarded'
-            }, { status: 404 });
-        }
+    // Check if the tenant is already onboarded
+    const isOnboarded = await isTenantOnboarded(tenantId);
+    if (!isOnboarded) {
+      console.log('Tenant not onboarded', { tenantId });
+      return buildErrorResponse({
+        message: 'Tenant not onboarded',
+        status: 404,
+        identifier: 'MISSING_CONFIGURATION',
+      })
+    }
 
-        // If we have a valid and onboarded tenantId, return true
-        return true;
-      }
-
-
+    // If we have a valid and onboarded tenantId, return true
     return true;
 }
 
@@ -110,11 +109,12 @@ export async function getTenantIdFromHeader(loaderRequest: LoaderFunctionArgs) {
         tenantId = process.env.TENANT_ID || null;
     }
     if(!tenantId) {
-        // Otherwise return an error response
-        return Response.json({
-          status: '401',
-          message: 'Tenant ID header missing or invalid'
-        }, { status: 401 });
+      // Otherwise return an error response
+      return buildErrorResponse({
+        status: 401,
+        message: 'Tenant ID header missing or invalid',
+        identifier: 'MISSING_MANDATORY_ATTRIBUTE'
+      })
     }
     return tenantId;
   }

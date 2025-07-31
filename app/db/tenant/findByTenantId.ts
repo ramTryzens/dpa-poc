@@ -19,6 +19,6 @@ export async function findByTenantId(tenant: GetTenant) {
 
     return tenants[tenantIndex];
   } catch (error) {
-    throw new Error(error?.toString());
+    throw error;
   }
 }
