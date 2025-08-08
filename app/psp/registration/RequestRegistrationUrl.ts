@@ -9,6 +9,7 @@ export async function requestRegistrationUrl(data: RequestRegistrationUrlBody) {
   const returnUrl = new URL(`${process.env.adapterbaseurl}/payment`)
   returnUrl.searchParams.append('DigitalPaymentTransaction', data.DigitalPaymentTransaction.DigitalPaymentTransaction)
   returnUrl.searchParams.append('tenantId', data.tenantId)
+  returnUrl.searchParams.append('redirectUrl', data.RedirectURL)
   const body = {
     cartTotalAmount: 1000,
     currency: "USD",

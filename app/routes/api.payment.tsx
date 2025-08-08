@@ -9,6 +9,8 @@ import { CONSTANTS } from "~/utils/constants";
 import { fetchTransactionDetails } from "~/psp/fetchTransactionDetails";
 import { chargePayment } from "~/psp/charge/chargePayment";
 import { getPspPaymentSuccessStatus } from "~/psp/utils/getPspPaymentSuccessStatus";
+import { redirect } from "react-router";
+import { storePaymentCard } from "~/dpa/storePaymentCard";
 
 export async function loader(loader: Route.ClientLoaderArgs) {
   // Validate Registration URL Request
@@ -23,6 +25,7 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       status = undefined,
       DigitalPaymentTransaction = undefined,
       tenantId = undefined,
+      redirectUrl = undefined,
     } = queryParams as PSPPaymentResponseBody;
     if (!transactionId)
       error = {
@@ -64,6 +67,16 @@ export async function loader(loader: Route.ClientLoaderArgs) {
         },
         status: { status: 400 },
       };
+    if (!redirectUrl)
+      error = {
+        items: {
+          status: "400",
+          message: "Missing RedirectUrl in request body",
+          identifier: "MISSING_MANDATORY_ATTRIBUTE",
+          version: CONSTANTS.API_VERSION,
+        },
+        status: { status: 400 },
+      };
     if (error?.items)
       return {
         error,
@@ -71,12 +84,41 @@ export async function loader(loader: Route.ClientLoaderArgs) {
     requestBody = {
       pspTransactionId: transactionId as string,
       status,
-      DigitalPaymentTransaction,
+      DigitalPaymentTransaction: DigitalPaymentTransaction as string,
       tenantId,
+      redirectUrl: decodeURIComponent(new URL(redirectUrl ?? "").toString()),
     };
 
     return {
       requestBody,
+    };
+  }
+
+  // Build Response
+  function buildResponse({
+    DigitalPaymentTransaction,
+    pspTransactionDetails,
+    DigitalPaytTransResult,
+  }: {
+    pspTransactionDetails: FetchTransactionDetailsResponse;
+    DigitalPaymentTransaction: string;
+    DigitalPaytTransResult: "01" | "05" | "02";
+  }) {
+    const [expiryMonth = "", expiryYear = ""] =
+      pspTransactionDetails?.cardDetails?.expiryDate?.split("/") || [];
+    return {
+      DigitalPaymentTransaction: {
+        DigitalPaymentTransaction,
+        DigitalPaytTransResult,
+      },
+      PaymentCard: {
+        PaytCardByPaytServiceProvider: pspTransactionDetails?.token, //"384738665438646"
+        PaymentCardType: pspTransactionDetails?.cardDetails?.cardType, //"DPVI"
+        PaymentCardExpirationMonth: expiryMonth, // "04"
+        PaymentCardExpirationYear: expiryYear,
+        PaymentCardMaskedNumber: pspTransactionDetails?.cardDetails?.cardNumber,
+        PaymentCardHolderName: pspTransactionDetails?.cardDetails?.cardName,
+      },
     };
   }
   const pspResponse = await validateRegistrationUrlRequest(loader);
@@ -105,10 +147,11 @@ export async function loader(loader: Route.ClientLoaderArgs) {
     };
   }
 
-  const chargePaymentPayload = await getChargePaymentPayload(
-    pspTransactionDetails
-  );
-  const charge = await chargePayment(chargePaymentPayload);
+  // TODO Remove charge payment call
+  // const chargePaymentPayload = await getChargePaymentPayload(
+  //   pspTransactionDetails
+  // );
+  // const charge = await chargePayment(chargePaymentPayload);
   const pspSuccessStatuses = getPspPaymentSuccessStatus();
   const DigitalPaytTransResult =
     pspResponse?.requestBody?.status === "success"
@@ -116,46 +159,27 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       : pspResponse?.requestBody?.status === "cancel"
       ? "05"
       : "02";
-  const [expiryMonth = "", expiryYear = ""] =
-    charge?.cardDetails?.expiryDate?.split("/");
-  if (!pspSuccessStatuses.includes(charge?.action)) {
-    return Response.json({
-      DigitalPaymentTransaction: {
-        DigitalPaymentTransaction:
-          pspResponse?.requestBody?.DigitalPaymentTransaction,
-        DigitalPaytTransResult,
-      },
-      PaymentCard: {
-        PaytCardByPaytServiceProvider: charge?.transactionId, //"384738665438646"
-        PaymentCardType: charge?.cardDetails?.cardType, //"DPVI"
-        PaymentCardExpirationMonth: expiryMonth, // "04"
-        PaymentCardExpirationYear: expiryYear,
-        PaymentCardMaskedNumber: charge?.cardDetails?.cardNumber,
-        PaymentCardHolderName: charge?.cardDetails?.cardName,
+  const responseBody = buildResponse({
+    pspTransactionDetails,
+    DigitalPaymentTransaction:
+      pspResponse.requestBody.DigitalPaymentTransaction,
+    DigitalPaytTransResult,
+  });
+  let notifyDPA;
+  // Below is the JSON response to be sent to DPA
+  if (!pspSuccessStatuses.includes(pspTransactionDetails?.status)) {
+    notifyDPA = await storePaymentCard({ body: responseBody });
+    return Response.json(responseBody);
+  } else {
+    notifyDPA = await storePaymentCard({
+      body: responseBody,
+      headers: {
+        "X-SAP-TenantId": pspResponse?.requestBody?.tenantId ?? "N/A",
       },
     });
   }
-
-  return Response.json(
-    {
-      DigitalPaymentTransaction: {
-        DigitalPaymentTransaction:
-          pspResponse?.requestBody?.DigitalPaymentTransaction,
-        DigitalPaytTransResult,
-      },
-      PaymentCard: {
-        PaytCardByPaytServiceProvider: charge?.transactionId, //"384738665438646"
-        PaymentCardType: charge?.cardDetails?.cardType, //"DPVI"
-        PaymentCardExpirationMonth: expiryMonth, // "04"
-        PaymentCardExpirationYear: expiryYear,
-        PaymentCardMaskedNumber: charge?.cardDetails?.cardNumber,
-        PaymentCardHolderName: charge?.cardDetails?.cardName,
-      },
-    },
-    { status: 200, headers: {
-      'X-SAP-TenantId': pspResponse?.requestBody?.tenantId ?? 'N/A'
-    } }
-  );
+  console.log("🚀 ~ loader ~ notifyDPA:", notifyDPA);
+  return redirect(pspResponse.requestBody.redirectUrl);
 }
 
 export async function action(data: Route.ClientActionArgs) {

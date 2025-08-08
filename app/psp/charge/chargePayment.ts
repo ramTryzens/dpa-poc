@@ -16,6 +16,7 @@ export async function chargePayment(params: ChargePaymentParams) {
     body,
   };
   const charge = await chargeMockPSP(payload);
+  console.log("🚀 ~ chargePayment ~ charge:", charge)
   return charge;
 }
 

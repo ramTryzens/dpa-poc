@@ -39,6 +39,12 @@ export async function action(loader: Route.ClientLoaderArgs) {
         message: "Missing DigitalPaymentTransaction in request body",
         identifier: "MISSING_MANDATORY_ATTRIBUTE",
       })
+    if (!requestBody?.RedirectURL)
+      return buildErrorResponse({
+        status: 400,
+        message: "Missing RedirectURL in request body",
+        identifier: "MISSING_MANDATORY_ATTRIBUTE",
+      })
     return {
       requestBody,
       tenantId,
