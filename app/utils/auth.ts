@@ -4,7 +4,11 @@ import type { JwtPayload } from "jsonwebtoken";
 import NodeCache from "node-cache";
 import axios from "axios";
 import { DOMParser } from "xmldom";
-import { select } from "xpath";
+import { select, useNamespaces } from "xpath";
+import dotenv from "dotenv";
+
+const envFile = process.env.NODE_ENV === "production" ? ".env.production" : ".env";
+dotenv.config({ path: envFile });
 
 
 // Define interface for decoded JWT with complete option
@@ -30,6 +34,7 @@ const config = {
     externalAdapterUaaUrl: process.env.EXTERNAL_ADAPTER_UAA_URL || 'https://adapter-uaa.example.com'
   }
 }
+console.log("🚀 ~ process.env.DIGITAL_PAYMENTS_UAA_URL:", process.env.DIGITAL_PAYMENTS_UAA_URL)
 
 // Cache for storing public keys
 const publicKeyCache = new NodeCache({
@@ -364,13 +369,16 @@ async function getSamlTokenUrl(): Promise<string> {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlData, 'text/xml');
 
+    const select = useNamespaces({
+      md: 'urn:oasis:names:tc:SAML:2.0:metadata'
+    });
+
     // Use XPath to find the AssertionConsumerService with the specified binding
     const nodes = select(
       "//md:AssertionConsumerService[@Binding='urn:oasis:names:tc:SAML:2.0:bindings:URI']",
       xmlDoc
     ) as Node[];
 
-    console.log("🚀 ~ getSamlTokenUrl ~ nodes:", nodes)
     if (!nodes || nodes.length === 0) {
       throw new Error('No AssertionConsumerService with URI binding found in SAML metadata');
     }
@@ -421,8 +429,9 @@ export async function getTokenforAdptrToCoreComm(dataToBePassedInJwt?: { [key: s
   // No valid token in cache, fetch a new one
   try {
     // Get token URL from SAML metadata
-    const tokenUrl = await getSamlTokenUrl();
-
+    const samlUrl = await getSamlTokenUrl();
+    const tokenUrl = new URL(samlUrl);
+    tokenUrl.searchParams.append('grant_type','client_credentials');
     const clientId = process.env.ADAPTER_TO_CORE_CLIENT_ID;
     const clientPassword = process.env.ADAPTER_TO_CORE_CLIENT_PASSWORD;
 
@@ -431,10 +440,10 @@ export async function getTokenforAdptrToCoreComm(dataToBePassedInJwt?: { [key: s
     }
 
     // Create Basic Auth credentials
-    const credentials = Buffer.from(`${clientId}:${clientPassword}`).toString('base64');
+    const credentials = Buffer.from(`${decodeURIComponent(clientId)}:${decodeURIComponent(clientPassword)}`).toString('base64');
 
     console.log('Fetching new adapter to core token');
-    const response = await axios.get(tokenUrl, {
+    const response = await axios.get(tokenUrl.toString(), {
       headers: {
         'Authorization': `Basic ${credentials}`,
         'Accept': 'application/json'
