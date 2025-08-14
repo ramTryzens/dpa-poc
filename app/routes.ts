@@ -12,6 +12,7 @@ export default [
   route("payment", "routes/api.payment.tsx"),
   route("core/v1/capabilities", "routes/core.v1.capabilities.tsx"),
   route("core/v1/charges", "routes/core.v1.charges.tsx"),
+  route("core/v1/merchants", "routes/core.v1.merchants.tsx"),
 
   // Catch-all fallback route (must come last)
   route("*", "routes/error-boundary.tsx")

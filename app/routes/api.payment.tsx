@@ -1,4 +1,4 @@
-import { validateJwt } from "~/utils/auth";
+import { getTokenforAdptrToCoreComm, validateJwt } from "~/utils/auth";
 import type { Route } from "./+types/test";
 import { getQuery } from "~/utils/getQuery";
 import type {
@@ -121,6 +121,7 @@ export async function loader(loader: Route.ClientLoaderArgs) {
       },
     };
   }
+
   const pspResponse = await validateRegistrationUrlRequest(loader);
   if (pspResponse?.error) {
     return Response.json(pspResponse?.error?.items, pspResponse?.error?.status);
@@ -171,14 +172,16 @@ export async function loader(loader: Route.ClientLoaderArgs) {
     notifyDPA = await storePaymentCard({ body: responseBody });
     return Response.json(responseBody);
   } else {
+    const bearerToken = await getTokenforAdptrToCoreComm();
     notifyDPA = await storePaymentCard({
       body: responseBody,
       headers: {
         "X-SAP-TenantId": pspResponse?.requestBody?.tenantId ?? "N/A",
+        "Authorization": `Bearer ${bearerToken}`,
       },
     });
   }
-  console.log("🚀 ~ loader ~ notifyDPA:", notifyDPA);
+  // Comment below line to confirm the payload going to DPA
   return redirect(pspResponse.requestBody.redirectUrl);
 }
 
