@@ -16,7 +16,7 @@
  * - PAYMENT_CARD_DETOKENIZATION: Convert a token back to payment card data
  */
 // Define types for our capabilities
-type PaymentCardCapability = 'cc_authorize' | 'cc_charge' | 'cc_register' | 'PAYMENT_CARD_TOKENIZATION' | 'PAYMENT_CARD_DETOKENIZATION';
+type PaymentCardCapability = 'cc_authorize' | 'cc_charge' | 'cc_register' | 'cc_registration_with_redirect' | 'PAYMENT_CARD_TOKENIZATION' | 'PAYMENT_CARD_DETOKENIZATION';
 type ExternalPaymentCapability = 'EXTERNAL_PAYMENT_INITIATION' | 'EXTERNAL_PAYMENT_COMPLETION' | 'EXTERNAL_PAYMENT_INFORMATION' | 'EXTERNAL_PAYMENT_CANCELLATION' | 'EXTERNAL_PAYMENT_REFUND';
 type AdditionalCapability = 'MULTI_CURRENCY' | 'BATCH_PROCESSING' | 'RECURRING_PAYMENTS' | 'INSTALLMENT_PAYMENTS' | 'FRAUD_DETECTION';
 
@@ -24,6 +24,7 @@ const paymentCardCapabilities: PaymentCardCapability[] = [
  'cc_register',
  'cc_authorize',
  'cc_charge',
+ 'cc_registration_with_redirect',
   // Uncomment capabilities as they are implemented
   // 'PAYMENT_CARD_TOKENIZATION',
   // 'PAYMENT_CARD_DETOKENIZATION'

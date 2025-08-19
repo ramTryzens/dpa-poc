@@ -20,5 +20,6 @@ export async function storePaymentCard(payload: StorePaymentCardPayload) {
   console.log("🚀 ~ storePaymentCard ~ result.status:", result.status)
   if (result.status === 204) return true;
   console.log("🚀 ~ storePaymentCard ~ result:", await result?.text())
-  return result.json() as Promise<StorePaymentCardErrorResponse>;
+  // return result.json() as Promise<StorePaymentCardErrorResponse>;
+  return true;
 }

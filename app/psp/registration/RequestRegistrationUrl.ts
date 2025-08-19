@@ -19,6 +19,7 @@ export async function requestRegistrationUrl(data: RequestRegistrationUrlBody) {
     // tokenize: true,
     showSavedCardOption: true,
   };
+  console.log("🚀 ~ requestRegistrationUrl ~ body:", body)
 
   const options = {
     method: "POST",
